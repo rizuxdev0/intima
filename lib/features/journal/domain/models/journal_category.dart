@@ -18,7 +18,45 @@ class JournalCategory {
   final int colorValue;
   final bool isDefault;
 
-  IconData get icon => IconData(iconCode, fontFamily: 'MaterialIcons');
+  /// Renvoie l'icône Material correspondante sous forme de constante
+  /// pour garantir la compatibilité avec le tree-shaking Flutter en mode release.
+  IconData get icon {
+    switch (id) {
+      case 'cat_personal':
+        return Icons.person_rounded;
+      case 'cat_love':
+        return Icons.favorite_rounded;
+      case 'cat_family':
+        return Icons.diversity_1_rounded;
+      case 'cat_reflections':
+        return Icons.psychology_rounded;
+      case 'cat_goals':
+        return Icons.flag_rounded;
+      case 'cat_memories':
+        return Icons.auto_awesome_rounded;
+      case 'cat_work':
+        return Icons.work_rounded;
+      case 'cat_studies':
+        return Icons.school_rounded;
+      case 'cat_other':
+        return Icons.category_rounded;
+      default:
+        return _iconFromCode(iconCode);
+    }
+  }
+
+  static IconData _iconFromCode(int code) {
+    if (code == Icons.person_rounded.codePoint) return Icons.person_rounded;
+    if (code == Icons.favorite_rounded.codePoint) return Icons.favorite_rounded;
+    if (code == Icons.diversity_1_rounded.codePoint) return Icons.diversity_1_rounded;
+    if (code == Icons.psychology_rounded.codePoint) return Icons.psychology_rounded;
+    if (code == Icons.flag_rounded.codePoint) return Icons.flag_rounded;
+    if (code == Icons.auto_awesome_rounded.codePoint) return Icons.auto_awesome_rounded;
+    if (code == Icons.work_rounded.codePoint) return Icons.work_rounded;
+    if (code == Icons.school_rounded.codePoint) return Icons.school_rounded;
+    if (code == Icons.category_rounded.codePoint) return Icons.category_rounded;
+    return Icons.folder_rounded;
+  }
   Color get color => Color(colorValue);
 
   String localizedName(String locale) {
