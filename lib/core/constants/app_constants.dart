@@ -70,6 +70,10 @@ class AppConstants {
   static const String notificationChannelId = 'intima_reminders';
   static const String notificationChannelName = 'Intima Reminders';
   static const int notificationMaxScheduled = 64;
+  static const int testNotificationId = 9999;
+  static const int pillNotificationId = 8801;
+  static const int checkinNotificationId = 8802;
+  static const int periodNotificationId = 8803;
 
   // ─── UI ───────────────────────────────────────────────────────────────────────
   static const double cardBorderRadius = 16.0;

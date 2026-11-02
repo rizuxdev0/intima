@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/notifications/notification_service.dart';
 import '../../../core/security/lock_provider.dart';
 import '../../../core/storage/storage_provider.dart';
 import '../../../shared/models/menstrual_cycle.dart';
+import '../../settings/providers/preferences_provider.dart';
 import '../data/menstrual_cycle_repository.dart';
 import '../domain/cycle_calculation_engine.dart';
 
@@ -41,6 +43,7 @@ class MenstrualCycleNotifier extends AsyncNotifier<List<MenstrualCycle>> {
     final all = [...?state.valueOrNull, cycle]
       ..sort((a, b) => b.startDate.compareTo(a.startDate));
     state = AsyncData(all);
+    await _syncPeriodAlert();
     return cycle;
   }
 
@@ -53,6 +56,7 @@ class MenstrualCycleNotifier extends AsyncNotifier<List<MenstrualCycle>> {
       updated[idx] = cycle;
       updated.sort((a, b) => b.startDate.compareTo(a.startDate));
       state = AsyncData(updated);
+      await _syncPeriodAlert();
     }
   }
 
@@ -60,6 +64,24 @@ class MenstrualCycleNotifier extends AsyncNotifier<List<MenstrualCycle>> {
     await _repo.delete(id);
     final all = state.valueOrNull ?? [];
     state = AsyncData(all.where((c) => c.id != id).toList());
+    await _syncPeriodAlert();
+  }
+
+  Future<void> _syncPeriodAlert() async {
+    try {
+      final prefs = ref.read(preferencesProvider).valueOrNull;
+      if (prefs == null || !prefs.notificationsEnabled || prefs.periodReminderDaysBefore <= 0) {
+        return;
+      }
+      final pred = prediction;
+      if (pred.estimatedNextPeriodStart != null) {
+        await NotificationService.schedulePeriodReminder(
+          estimatedStartDate: pred.estimatedNextPeriodStart!,
+          daysBefore: prefs.periodReminderDaysBefore,
+          discretionLevel: prefs.notificationDiscretion,
+        );
+      }
+    } catch (_) {}
   }
 
   Future<void> addSymptom(String cycleId, CycleSymptom symptom) async {

@@ -75,11 +75,12 @@ class JournalRemindersRepository {
     }
 
     try {
-      await NotificationService.scheduleNotification(
+      await NotificationService.scheduleDailyNotification(
         id: reminder.id.hashCode,
         title: 'Journal Intime',
         body: reminder.message,
-        scheduledDate: scheduled,
+        hour: reminder.hour,
+        minute: reminder.minute,
         discretionLevel: reminder.discretionLevel,
       );
     } catch (_) {

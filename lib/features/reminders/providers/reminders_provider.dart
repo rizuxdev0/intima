@@ -101,15 +101,23 @@ class RemindersNotifier extends AsyncNotifier<List<Reminder>> {
 
   Future<void> _scheduleNotification(Reminder reminder) async {
     try {
+      var date = reminder.scheduledDate;
+      if (reminder.scheduledTime != null && reminder.scheduledTime!.contains(':')) {
+        final parts = reminder.scheduledTime!.split(':');
+        final h = int.tryParse(parts[0]) ?? 9;
+        final m = int.tryParse(parts[1]) ?? 0;
+        date = DateTime(date.year, date.month, date.day, h, m);
+      }
       await NotificationService.scheduleNotification(
         id: reminder.notificationId ?? 0,
         title: reminder.title,
         body: reminder.description ?? '',
-        scheduledDate: reminder.scheduledDate,
+        scheduledDate: date,
         discretionLevel: reminder.discretionLevel,
       );
-    } catch (_) {
-      // Notification non critique — ne pas bloquer l'opération principale
+    } catch (e) {
+      // ignore: avoid_print
+      print('[RemindersNotifier] Erreur de planification de notification: $e');
     }
   }
 }

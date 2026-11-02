@@ -76,17 +76,20 @@ class SexualHealthRepository {
     ));
 
     // Si une date de prochain rappel est configurée, programmer la notification locale discrète
-    if (screening.nextReminderDate != null &&
-        screening.nextReminderDate!.isAfter(DateTime.now())) {
-      try {
-        await NotificationService.scheduleNotification(
-          id: screening.id.hashCode,
-          title: 'Santé & Prévention',
-          body: 'Rappel de bilan de santé et dépistage de routine.',
-          scheduledDate: screening.nextReminderDate!,
-          discretionLevel: 0,
-        );
-      } catch (_) {}
+    if (screening.nextReminderDate != null) {
+      final date = screening.nextReminderDate!;
+      final alertDate = DateTime(date.year, date.month, date.day, 9, 0);
+      if (alertDate.isAfter(DateTime.now())) {
+        try {
+          await NotificationService.scheduleNotification(
+            id: screening.id.hashCode,
+            title: 'Santé & Prévention',
+            body: 'Rappel de bilan de santé et dépistage de routine.',
+            scheduledDate: alertDate,
+            discretionLevel: 0,
+          );
+        } catch (_) {}
+      }
     }
   }
 

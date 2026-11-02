@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/notifications/notification_service.dart';
 import '../../../core/storage/storage_provider.dart';
 import '../../../shared/models/app_preferences.dart';
 import '../data/preferences_repository.dart';
@@ -39,8 +40,25 @@ class PreferencesNotifier extends AsyncNotifier<AppPreferences> {
   Future<void> setDiscreetMode(bool enabled) =>
       _updatePreferences((p) => p.copyWith(discreetMode: enabled));
 
-  Future<void> setNotificationDiscretion(int level) =>
-      _updatePreferences((p) => p.copyWith(notificationDiscretion: level));
+  Future<void> setNotificationDiscretion(int level) async {
+    final current = state.valueOrNull ?? const AppPreferences();
+    await _updatePreferences((p) => p.copyWith(notificationDiscretion: level));
+
+    if (current.notificationsEnabled) {
+      if (current.pillReminderEnabled) {
+        await NotificationService.schedulePillReminder(
+          timeStr: current.pillReminderTime,
+          discretionLevel: level,
+        );
+      }
+      if (current.dailyCheckinReminderEnabled) {
+        await NotificationService.scheduleDailyCheckinReminder(
+          timeStr: current.dailyCheckinReminderTime,
+          discretionLevel: level,
+        );
+      }
+    }
+  }
 
   Future<void> setOnboardingCompleted() =>
       _updatePreferences((p) => p.copyWith(onboardingCompleted: true));
@@ -92,23 +110,76 @@ class PreferencesNotifier extends AsyncNotifier<AppPreferences> {
       _updatePreferences((p) => p.copyWith(acceptedPrivacyPolicy: accepted));
 
   /// Configuration des notifications & rappels
-  Future<void> setNotificationsEnabled(bool enabled) =>
-      _updatePreferences((p) => p.copyWith(notificationsEnabled: enabled));
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    final current = state.valueOrNull ?? const AppPreferences();
+    await _updatePreferences((p) => p.copyWith(notificationsEnabled: enabled));
 
-  Future<void> setPeriodReminderDaysBefore(int days) =>
-      _updatePreferences((p) => p.copyWith(periodReminderDaysBefore: days));
+    if (enabled) {
+      await NotificationService.requestPermissions();
+      if (current.pillReminderEnabled) {
+        await NotificationService.schedulePillReminder(
+          timeStr: current.pillReminderTime,
+          discretionLevel: current.notificationDiscretion,
+        );
+      }
+      if (current.dailyCheckinReminderEnabled) {
+        await NotificationService.scheduleDailyCheckinReminder(
+          timeStr: current.dailyCheckinReminderTime,
+          discretionLevel: current.notificationDiscretion,
+        );
+      }
+    } else {
+      await NotificationService.cancelPillReminder();
+      await NotificationService.cancelDailyCheckinReminder();
+      await NotificationService.cancelPeriodReminder();
+    }
+  }
 
-  Future<void> setPillReminder({bool? enabled, String? time}) =>
-      _updatePreferences((p) => p.copyWith(
-            pillReminderEnabled: enabled ?? p.pillReminderEnabled,
-            pillReminderTime: time ?? p.pillReminderTime,
-          ));
+  Future<void> setPeriodReminderDaysBefore(int days) async {
+    await _updatePreferences((p) => p.copyWith(periodReminderDaysBefore: days));
+  }
 
-  Future<void> setDailyCheckinReminder({bool? enabled, String? time}) =>
-      _updatePreferences((p) => p.copyWith(
-            dailyCheckinReminderEnabled: enabled ?? p.dailyCheckinReminderEnabled,
-            dailyCheckinReminderTime: time ?? p.dailyCheckinReminderTime,
-          ));
+  Future<void> setPillReminder({bool? enabled, String? time}) async {
+    final current = state.valueOrNull ?? const AppPreferences();
+    final newEnabled = enabled ?? current.pillReminderEnabled;
+    final newTime = time ?? current.pillReminderTime;
+
+    await _updatePreferences((p) => p.copyWith(
+          pillReminderEnabled: newEnabled,
+          pillReminderTime: newTime,
+        ));
+
+    if (newEnabled && current.notificationsEnabled) {
+      await NotificationService.requestPermissions();
+      await NotificationService.schedulePillReminder(
+        timeStr: newTime,
+        discretionLevel: current.notificationDiscretion,
+      );
+    } else {
+      await NotificationService.cancelPillReminder();
+    }
+  }
+
+  Future<void> setDailyCheckinReminder({bool? enabled, String? time}) async {
+    final current = state.valueOrNull ?? const AppPreferences();
+    final newEnabled = enabled ?? current.dailyCheckinReminderEnabled;
+    final newTime = time ?? current.dailyCheckinReminderTime;
+
+    await _updatePreferences((p) => p.copyWith(
+          dailyCheckinReminderEnabled: newEnabled,
+          dailyCheckinReminderTime: newTime,
+        ));
+
+    if (newEnabled && current.notificationsEnabled) {
+      await NotificationService.requestPermissions();
+      await NotificationService.scheduleDailyCheckinReminder(
+        timeStr: newTime,
+        discretionLevel: current.notificationDiscretion,
+      );
+    } else {
+      await NotificationService.cancelDailyCheckinReminder();
+    }
+  }
 }
 
 final preferencesProvider =
